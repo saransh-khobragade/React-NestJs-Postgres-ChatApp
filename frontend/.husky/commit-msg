@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+# Check if commit message follows conventional format
+commit_regex='^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .{1,50}'
+
+if ! grep -qE "$commit_regex" "$1"; then
+    echo "❌ Commit message format is invalid!"
+    echo "Please use conventional commit format:"
+    echo "  feat: add new feature"
+    echo "  fix: resolve bug"
+    echo "  docs: update documentation"
+    echo "  style: formatting changes"
+    echo "  refactor: code refactoring"
+    echo "  test: add tests"
+    echo "  chore: maintenance tasks"
+    exit 1
+fi
+
+echo "✅ Commit message format is valid!" 

@@ -1,0 +1,136 @@
+{
+  "project": {
+    "name": "React-NestJs-Postgres-ChatApp",
+    "description": "Minimal WhatsApp-like chat app built on existing CRUD stack"
+  },
+  "stack": {
+    "frontend": ["react", "typescript", "vite", "shadcn"],
+    "backend": ["nestjs", "typeorm", "socket.io", "jwt"],
+    "database": "postgres",
+    "docker": true
+  },
+  "run": {
+    "docker": [
+      "docker compose up -d --build",
+      "# if schema changed:",
+      "docker compose down -v && docker compose up -d --build"
+    ],
+    "local": [
+      "cd backend && yarn install && yarn start:dev",
+      "cd ../frontend && yarn install && yarn dev"
+    ],
+    "urls": {
+      "frontend": "http://localhost:3000",
+      "backend": "http://localhost:8080",
+      "swagger": "http://localhost:8080/api",
+      "pgadmin": "http://localhost:5050"
+    }
+  },
+  "env": {
+    "DATABASE_HOST": "postgres",
+    "DATABASE_PORT": 5432,
+    "DATABASE_NAME": "test_db",
+    "DATABASE_USER": "postgres",
+    "DATABASE_PASSWORD": "password",
+    "JWT_SECRET": "dev_jwt_secret",
+    "JWT_EXPIRES_IN": "1d",
+    "VITE_API_URL": "http://localhost:8080"
+  },
+  "backend": {
+    "entry": "backend/src/main.ts",
+    "modules": ["auth", "users", "blogs", "chat", "metrics"],
+    "auth": {
+      "type": "jwt",
+      "bearer": true,
+      "strategy": "passport-jwt",
+      "guard": "JwtAuthGuard"
+    },
+    "rest_endpoints": [
+      {"method": "POST", "path": "/api/auth/signup", "auth": false, "desc": "Create user, returns access_token"},
+      {"method": "POST", "path": "/api/auth/login", "auth": false, "desc": "Login, returns access_token"},
+      {"method": "GET", "path": "/api/users", "auth": false, "desc": "List users; optional ?query for search"},
+      {"method": "GET", "path": "/api/conversations", "auth": true, "desc": "List conversations for current user"},
+      {"method": "GET", "path": "/api/conversations/:id/messages", "auth": true, "desc": "List messages in a conversation"},
+      {"method": "POST", "path": "/api/conversations/direct/:userId", "auth": true, "desc": "Get/create direct conversation with a user"}
+    ],
+    "ws": {
+      "library": "socket.io",
+      "gateway": "backend/src/chat/chat.gateway.ts",
+      "auth": "JWT via Socket.IO auth token",
+      "events": {
+        "client_to_server": [
+          {"name": "conversation.join", "payload": {"conversationId": "number"}},
+          {"name": "conversation.leave", "payload": {"conversationId": "number"}},
+          {"name": "message.send", "payload": {"conversationId": "number", "content": "string"}}
+        ],
+        "server_to_client": [
+          {"name": "message.receive", "payload": "Message"}
+        ]
+      }
+    },
+    "entities": {
+      "User": {
+        "table": "users",
+        "fields": {
+          "id": "number (pk)",
+          "name": "string",
+          "email": "string unique",
+          "password": "string (bcrypt hash)",
+          "age": "number?",
+          "isActive": "boolean",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
+        }
+      },
+      "Conversation": {
+        "table": "conversations",
+        "fields": {
+          "id": "number (pk)",
+          "createdAt": "timestamp"
+        },
+        "relations": {
+          "participants": "many-to-many users via conversation_participants",
+          "messages": "one-to-many messages"
+        }
+      },
+      "Message": {
+        "table": "messages",
+        "fields": {
+          "id": "number (pk)",
+          "conversationId": "number (fk)",
+          "senderId": "number (fk)",
+          "content": "text",
+          "createdAt": "timestamp"
+        }
+      }
+    }
+  },
+  "database": {
+    "init_sql": "database/init.sql",
+    "tables": [
+      "users(id, name, email, password, age, is_active, created_at, updated_at)",
+      "blogs(id, title, content, author_id, created_at)",
+      "conversations(id, created_at)",
+      "conversation_participants(conversation_id, user_id)",
+      "messages(id, conversation_id, sender_id, content, created_at)"
+    ]
+  },
+  "frontend": {
+    "entry": "frontend/src/App.tsx",
+    "routes": ["/", "/auth", "/chat", "/write", "/blogs/:id"],
+    "pages": {
+      "AuthPage": "frontend/src/pages/AuthPage.tsx",
+      "HomePage": "frontend/src/pages/HomePage.tsx",
+      "ChatPage": "frontend/src/pages/ChatPage.tsx"
+    },
+    "ws": {
+      "client": "socket.io-client",
+      "connect": "io(VITE_API_URL, { auth: { token } })"
+    }
+  },
+  "notes": [
+    "Minimal chat: direct conversations only",
+    "No message edit/delete, no typing indicators",
+    "Recreate DB volume to apply schema changes if needed"
+  ]
+}

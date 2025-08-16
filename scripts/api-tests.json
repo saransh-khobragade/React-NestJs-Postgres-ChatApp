@@ -1,0 +1,60 @@
+{
+  "baseUrl": "http://localhost:8080",
+  "tests": [
+    {
+      "name": "Health endpoint",
+      "method": "GET",
+      "path": "/health",
+      "expectCode": 200,
+      "expectResponse": {
+        "status": "ok"
+      }
+    },
+    {
+      "name": "Create user",
+      "method": "POST",
+      "path": "/api/users",
+      "body": {
+        "name": "Test User",
+        "email": "test@example.com", 
+        "password": "password123"
+      },
+      "expectCode": 201,
+      "expectResponse": {
+        "success": true
+      }
+    },
+    {
+      "name": "List users",
+      "method": "GET",
+      "path": "/api/users",
+      "expectCode": 200,
+      "expectResponse": {
+        "success": true
+      }
+    },
+    {
+      "name": "Login user",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "body": {
+        "email": "test@example.com",
+        "password": "password123"
+      },
+      "expectCode": 200,
+      "expectResponse": {
+        "success": true
+      }
+    },
+    {
+      "name": "Invalid login",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "body": {
+        "email": "test@example.com",
+        "password": "wrongpassword"
+      },
+      "expectCode": 401
+    }
+  ]
+}
